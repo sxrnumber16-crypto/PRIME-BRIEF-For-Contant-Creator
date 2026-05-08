@@ -11,17 +11,27 @@ import { motion } from 'framer-motion';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const getSystemInstruction = (language: string) => `You are a content strategist for BeyondTahir, an AI creator making education content.
+const getSystemInstruction = (language: string) => `You are a content strategist for BeyondTahir, a Pakistani AI creator making ${language} AI education content for Pakistan, India, Bangladesh, and Nepal audiences. 
+His style is personal, excited, story-based, and simple. He explains AI like a friend telling another friend something crazy he discovered at 2 AM. 
+Use words like yaar, bhai, dekho, suno naturally. Mix ${language} with English tech terms. 
+Use daily-life examples like WhatsApp, business, students, freelancers, parents, office work, and Pakistani market examples.
+Do not sound formal, robotic, or corporate. Do not use boring AI explanations. Focus on making it desi, useful, emotional, and story-based. Every idea should help the audience learn AI, earn with AI, or understand the future before others.
+
 Output EXACTLY valid JSON matching the schema requested. No markdown blocks around JSON, just raw JSON.
-Ensure all generated scripts and content are primarily in ${language}.
 For 'thumbnail_concept', ALWAYS provide highly descriptive, professional, cinematic visual prompts (use keywords like: dramatic lighting, high contrast, 8k resolution, photorealistic, cinematic composition).`;
 
-const getPrompt = (niche: string) => `Your daily job is to create a highly-researched 9:00 AM content brief for BeyondTahir. 
-Before creating the brief, you MUST use Google Search to gather the most viral and trending information from:
-1. Major news companies, blogs, and news publishers.
-2. YouTube, Facebook, Instagram, TikTok, Twitter/X, and other major social media platforms.
-3. Top creators (Vaibhav Sisinty, Dan Martell, Ishan Sharma, Raj Shamani, Growth School).
-${niche.trim() ? `Find and focus on the hottest viral angles specifically related to the creator's niche: "${niche}". Create the entire brief around this niche based on what is actually trending right now across these platforms, keeping it engaging, relatable, and native to the creator's style.` : `Find today's hottest general AI topics based on what is currently going viral on social media and news platforms.`}
+const getPrompt = (niche: string) => `Your daily job is to create a highly-researched 9:00 AM PKT content brief for BeyondTahir. 
+Before creating the brief, you MUST use Google Search to gather the most viral and trending information.
+
+CRITICAL RULE FOR SOURCES: There are no strict limitations on which websites or platforms you use to gather information, BUT whatever sources you collect information from MUST be highly reputed, top-tier, high-profile, and world-renowned authorities in the target niche.
+
+Sources to explore include but are not limited to:
+1. Top-tier, highly reputed major news companies, blogs, and industry-leading publishers.
+2. Elite newsletters/sources appropriate for the niche (For AI: Finstory AI, Marketing with AI, Understanding AI, This Week in AI, Tyler Folkman, Excellent Prompts, Claude Code for Non-Coders, AIE Works).
+3. Viral content from YouTube, Facebook, Instagram, TikTok, Twitter/X, and LinkedIn.
+4. Extremely high-profile creators and thought leaders (e.g., Vaibhav Sisinty, Dan Martell, Ishan Sharma, Raj Shamani, Growth School). Analyze their latest posts for the best hooks, topics, and engaging patterns.
+
+${niche.trim() ? `Focus entirely on the hottest viral angles specifically related to the creator's niche: "${niche}". Collect information from the most high-profile and reputed sources relevant to "${niche}". Create the entire brief around this niche based on what is actually trending right now across these top-tier platforms, keeping it engaging, relatable, and native to the creator's style.` : `Find today's hottest general AI topics based on what is currently going viral on high-profile social media, top-tier newsletters, and highly reputed news platforms.`}
 
 Output MUST be raw JSON exactly matching this structure:
 {
@@ -41,6 +51,9 @@ Output MUST be raw JSON exactly matching this structure:
       "id": "reel_news_1",
       "type": "Reel News",
       "topic": "...",
+      "title": "Viral, click-worthy title...",
+      "description": "Engaging, SEO-optimized description...",
+      "tags": ["viral", "ai", "trending"],
       "hook": "...",
       "script": "Word-for-word Roman Urdu script...",
       "thumbnail_concept": "Description of visuals, face expression, text overlay",
@@ -51,6 +64,9 @@ Output MUST be raw JSON exactly matching this structure:
       "id": "reel_tool_1",
       "type": "Reel Tutorial",
       "topic": "...",
+      "title": "Viral, click-worthy title...",
+      "description": "Engaging description for the post...",
+      "tags": ["viral", "ai", "trending"],
       "hook": "...",
       "script": "Word-for-word Roman Urdu...",
       "thumbnail_concept": "Description of visuals...",
@@ -61,6 +77,9 @@ Output MUST be raw JSON exactly matching this structure:
       "id": "youtube_1",
       "type": "YouTube Video",
       "topic": "...",
+      "title": "Viral, click-worthy title...",
+      "description": "Engaging description for the post...",
+      "tags": ["viral", "ai", "trending"],
       "hook": "...",
       "script": "Detailed outline with Roman Urdu dialogue...",
       "thumbnail_concept": "Wide aspect thumbnail description...",
@@ -71,6 +90,9 @@ Output MUST be raw JSON exactly matching this structure:
       "id": "newsletter_1",
       "type": "Newsletter",
       "topic": "...",
+      "title": "Viral, click-worthy title...",
+      "description": "Engaging description for the post...",
+      "tags": ["viral", "ai", "trending"],
       "hook": "...",
       "script": "Hook paragraph + sections...",
       "thumbnail_concept": "Newsletter header image concept...",
@@ -90,6 +112,9 @@ interface ContentPiece {
   id: string;
   type: string;
   topic: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
   hook?: string;
   script?: string;
   thumbnail_concept?: string;
@@ -136,13 +161,14 @@ function AssetGenerator({ item }: { item: ContentPiece }) {
     setIsGeneratingImage(true);
     setImageError(null);
     try {
+      const baseStyle = "Extremely photorealistic, 100% real human photography, true-to-life, absolutely NO cartoons, NO illustrations, NO 3d renders, exact photographic match to the uploaded face, sharp focus, 8k resolution. ";
       const stylePrefix = item.aspect_ratio === '9:16'
-        ? "Ultra-professional highly engaging viral Instagram/TikTok Reel cover video still. Dramatic lighting, vivid colors, high contrast, sharp focus, 8k resolution, cinematic, expressive face. "
+        ? baseStyle + "Ultra-professional highly engaging viral Instagram/TikTok Reel cover video still. Dramatic lighting, vivid colors, high contrast, cinematic composition. "
         : item.aspect_ratio === '16:9'
-        ? "Ultra-professional viral YouTube thumbnail. Cinematic studio lighting, neon rim lighting, deep contrast, shallow depth of field, 8k resolution, highly engaging, expressive face, YouTube thumbnail style. "
-        : "Professional high-quality editorial image. Clean modern aesthetic, sharp focus, vibrant, highly detailed photo, 8k. ";
+        ? baseStyle + "Ultra-professional viral YouTube thumbnail. Cinematic studio lighting, neon rim lighting, deep contrast, shallow depth of field. "
+        : baseStyle + "Professional high-quality editorial photography. Clean modern aesthetic, vibrant, highly detailed photo. ";
         
-      const enhancedPrompt = stylePrefix + imagePrompt;
+      const enhancedPrompt = "Subject/Face: MUST look exactly like a real human, identical to the uploaded photo. Style: " + stylePrefix + imagePrompt;
 
       const parts: any[] = [{ text: enhancedPrompt }];
       if (uploadedBase64) {
@@ -194,11 +220,19 @@ function AssetGenerator({ item }: { item: ContentPiece }) {
               }
             }
           }
-        } catch (fbErr: any) {
-          setImageError(fbErr.message || "Failed to generate image.");
+          } catch (fbErr: any) {
+          let errorMessage = fbErr.message || "Failed to generate image.";
+          if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota")) {
+            errorMessage = "API Quota Exceeded. Please try again later.";
+          }
+          setImageError(errorMessage);
         }
       } else {
-        setImageError(err.message || "Failed to generate image.");
+        let errorMessage = err.message || "Failed to generate image.";
+        if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota")) {
+          errorMessage = "API Quota Exceeded. Please try again later.";
+        }
+        setImageError(errorMessage);
       }
     } finally {
       setIsGeneratingImage(false);
@@ -323,7 +357,20 @@ export default function App() {
       setBrief(parsed);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "An error occurred while generating the brief.");
+      let errorMessage = err.message || "An error occurred while generating the brief.";
+      if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota")) {
+        errorMessage = "API Quota Exceeded. Please try again later, or use a different API key if applicable.";
+      } else if (errorMessage.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(errorMessage);
+          if (parsed.error?.message) {
+            errorMessage = parsed.error.message;
+          }
+        } catch (e) {
+          // ignore parse error
+        }
+      }
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
@@ -501,6 +548,28 @@ export default function App() {
                 </div>
                 
                 <div className="p-6 sm:p-8 flex flex-col gap-6">
+                   {piece.title && (
+                     <div>
+                       <p className="text-[10px] font-black uppercase text-orange-500 mb-1 tracking-wider">Viral Title</p>
+                       <p className="text-lg font-black text-white">{piece.title}</p>
+                     </div>
+                   )}
+                   {piece.description && (
+                     <div>
+                       <p className="text-[10px] font-black uppercase text-gray-400 mb-1 tracking-wider">Viral Description</p>
+                       <p className="text-xs text-gray-300 font-mono leading-relaxed">{piece.description}</p>
+                     </div>
+                   )}
+                   {piece.tags && piece.tags.length > 0 && (
+                     <div>
+                       <p className="text-[10px] font-black uppercase text-gray-400 mb-2 tracking-wider">Viral Tags</p>
+                       <div className="flex flex-wrap gap-2">
+                         {piece.tags.map(tag => (
+                           <span key={tag} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded text-orange-200 uppercase tracking-widest">{tag.startsWith('#') ? tag : `#${tag}`}</span>
+                         ))}
+                       </div>
+                     </div>
+                   )}
                    {piece.hook && (
                      <div>
                        <p className="text-[10px] font-black uppercase text-orange-500 mb-1 tracking-wider">Hook Strategy</p>

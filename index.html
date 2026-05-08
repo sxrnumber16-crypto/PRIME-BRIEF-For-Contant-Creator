@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PRIME BRIEF</title>
+    <!-- Polyfill workaround for node-fetch replacing window.fetch -->
+    <script>
+      const originalFetch = window.fetch;
+      Object.defineProperty(window, 'fetch', {
+        get: () => originalFetch,
+        set: () => {
+          console.warn('Blocked attempt to overwrite window.fetch');
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
