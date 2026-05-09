@@ -11,27 +11,30 @@ import { motion } from 'framer-motion';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const getSystemInstruction = (language: string) => `You are a content strategist for BeyondTahir, a Pakistani AI creator making ${language} AI education content for Pakistan, India, Bangladesh, and Nepal audiences. 
-His style is personal, excited, story-based, and simple. He explains AI like a friend telling another friend something crazy he discovered at 2 AM. 
-Use words like yaar, bhai, dekho, suno naturally. Mix ${language} with English tech terms. 
-Use daily-life examples like WhatsApp, business, students, freelancers, parents, office work, and Pakistani market examples.
-Do not sound formal, robotic, or corporate. Do not use boring AI explanations. Focus on making it desi, useful, emotional, and story-based. Every idea should help the audience learn AI, earn with AI, or understand the future before others.
+const getSystemInstruction = (language: string, creatorType: string) => `You are a high-end content strategist for a creator whose persona/niche is: "${creatorType}". 
+You create highly engaging ${language} content tailored to their target audience.
+Their style is personal, excited, story-based, and simple. They explain things like a friend telling another friend something crazy they discovered at 2 AM. 
+Use words like yaar, bhai, dekho, suno naturally. Mix ${language} with English terms relevant to their niche. 
+Use daily-life examples and relatable local scenarios.
+Do not sound formal, robotic, or corporate. Focus on making it desi, useful, emotional, and story-based. Every idea should help the audience learn, earn, or understand the future before others.
+
+When generating scripts for content pieces, you MUST be hyper-engaging, conversational, and use the 'desi' style heavily. You should sound exactly like a high-energy local creator speaking to their audience directly ("suno yaar", "bhai dekho", etc.). Avoid standard generic explanations.
 
 Output EXACTLY valid JSON matching the schema requested. No markdown blocks around JSON, just raw JSON.
-For 'thumbnail_concept', ALWAYS provide highly descriptive, professional, cinematic visual prompts (use keywords like: dramatic lighting, high contrast, 8k resolution, photorealistic, cinematic composition).`;
+For 'thumbnail_concept', ALWAYS provide highly descriptive, professional, cinematic visual prompts (use keywords like: dramatic lighting, high contrast, 8k resolution, photorealistic, cinematic composition). If text is to be placed in the image, clearly specify the exact text in quotes and instruct to ensure perfect spelling.`;
 
-const getPrompt = (niche: string) => `Your daily job is to create a highly-researched 9:00 AM PKT content brief for BeyondTahir. 
-Before creating the brief, you MUST use Google Search to gather the most viral and trending information.
+const getPrompt = (topic: string, creatorType: string) => `Your daily job is to create a highly-researched content brief for the creator (Persona: "${creatorType}"). 
+Before creating the brief, you MUST use Google Search to gather the most viral and trending information appropriate for this creator type.
 
 CRITICAL RULE FOR SOURCES: There are no strict limitations on which websites or platforms you use to gather information, BUT whatever sources you collect information from MUST be highly reputed, top-tier, high-profile, and world-renowned authorities in the target niche.
 
 Sources to explore include but are not limited to:
-1. Top-tier, highly reputed major news companies, blogs, and industry-leading publishers.
-2. Elite newsletters/sources appropriate for the niche (For AI: Finstory AI, Marketing with AI, Understanding AI, This Week in AI, Tyler Folkman, Excellent Prompts, Claude Code for Non-Coders, AIE Works).
+1. Top-tier, highly reputed major news companies, blogs, and industry-leading publishers relevant to "${creatorType}".
+2. Elite newsletters/sources appropriate for the niche.
 3. Viral content from YouTube, Facebook, Instagram, TikTok, Twitter/X, and LinkedIn.
-4. Extremely high-profile creators and thought leaders (e.g., Vaibhav Sisinty, Dan Martell, Ishan Sharma, Raj Shamani, Growth School). Analyze their latest posts for the best hooks, topics, and engaging patterns.
+4. Extremely high-profile creators and thought leaders in the "${creatorType}" space. Analyze their latest posts for the best hooks, topics, and engaging patterns.
 
-${niche.trim() ? `Focus entirely on the hottest viral angles specifically related to the creator's niche: "${niche}". Collect information from the most high-profile and reputed sources relevant to "${niche}". Create the entire brief around this niche based on what is actually trending right now across these top-tier platforms, keeping it engaging, relatable, and native to the creator's style.` : `Find today's hottest general AI topics based on what is currently going viral on high-profile social media, top-tier newsletters, and highly reputed news platforms.`}
+${topic.trim() ? `Focus entirely on the hottest viral angles specifically related to the creator's current sub-topic: "${topic}". Collect information from the most high-profile and reputed sources relevant to "${topic}". Create the entire brief around this sub-topic based on what is actually trending right now across these top-tier platforms, keeping it engaging, relatable, and native to the creator's style.` : `Find today's hottest topics based on what is currently going viral on high-profile social media, top-tier newsletters, and highly reputed news platforms relevant to "${creatorType}".`}
 
 Output MUST be raw JSON exactly matching this structure:
 {
@@ -55,7 +58,7 @@ Output MUST be raw JSON exactly matching this structure:
       "description": "Engaging, SEO-optimized description...",
       "tags": ["viral", "ai", "trending"],
       "hook": "...",
-      "script": "Word-for-word Roman Urdu script...",
+      "script": "Word-for-word, highly engaging, desi-style Roman Urdu script (use yaar, bhai, etc.)...",
       "thumbnail_concept": "Description of visuals, face expression, text overlay",
       "aspect_ratio": "9:16",
       "duration": "60-90s"
@@ -68,7 +71,7 @@ Output MUST be raw JSON exactly matching this structure:
       "description": "Engaging description for the post...",
       "tags": ["viral", "ai", "trending"],
       "hook": "...",
-      "script": "Word-for-word Roman Urdu...",
+      "script": "Word-for-word, rapid-fire, conversational desi-style Roman Urdu...",
       "thumbnail_concept": "Description of visuals...",
       "aspect_ratio": "9:16",
       "duration": "60-90s"
@@ -81,7 +84,7 @@ Output MUST be raw JSON exactly matching this structure:
       "description": "Engaging description for the post...",
       "tags": ["viral", "ai", "trending"],
       "hook": "...",
-      "script": "Detailed outline with Roman Urdu dialogue...",
+      "script": "Detailed outline with very conversational, engaging Roman Urdu dialogue...",
       "thumbnail_concept": "Wide aspect thumbnail description...",
       "aspect_ratio": "16:9",
       "duration": "10-20 min"
@@ -94,7 +97,7 @@ Output MUST be raw JSON exactly matching this structure:
       "description": "Engaging description for the post...",
       "tags": ["viral", "ai", "trending"],
       "hook": "...",
-      "script": "Hook paragraph + sections...",
+      "script": "Conversational hook paragraph + sections, written like a friendly letter...",
       "thumbnail_concept": "Newsletter header image concept...",
       "aspect_ratio": "16:9",
       "duration": "5 min read"
@@ -161,14 +164,14 @@ function AssetGenerator({ item }: { item: ContentPiece }) {
     setIsGeneratingImage(true);
     setImageError(null);
     try {
-      const baseStyle = "Extremely photorealistic, 100% real human photography, true-to-life, absolutely NO cartoons, NO illustrations, NO 3d renders, exact photographic match to the uploaded face, sharp focus, 8k resolution. ";
+      const baseStyle = "Extremely high-quality, professional, and classic YouTube/social media thumbnail style. The person MUST look exactly like a real natural photographic human matching the uploaded photo perfectly (NO cartoons, NO 3D rendering, NO artificial/robotic AI look). Natural yet high-retention aesthetic, sharp focus, 8k resolution. ";
       const stylePrefix = item.aspect_ratio === '9:16'
-        ? baseStyle + "Ultra-professional highly engaging viral Instagram/TikTok Reel cover video still. Dramatic lighting, vivid colors, high contrast, cinematic composition. "
+        ? baseStyle + "Vertical Reel cover video still. Clean and professional lighting, cinematic composition, high-quality natural colors, visually striking but realistic. "
         : item.aspect_ratio === '16:9'
-        ? baseStyle + "Ultra-professional viral YouTube thumbnail. Cinematic studio lighting, neon rim lighting, deep contrast, shallow depth of field. "
-        : baseStyle + "Professional high-quality editorial photography. Clean modern aesthetic, vibrant, highly detailed photo. ";
+        ? baseStyle + "Classic high-end YouTube thumbnail style. Clean background, professional studio lighting on the subject, well-balanced vibrant colors, very clean and polished composition without being overly edited. "
+        : baseStyle + "Professional high-quality social media design. Clean modern aesthetic, premium photography look. ";
         
-      const enhancedPrompt = "Subject/Face: MUST look exactly like a real human, identical to the uploaded photo. Style: " + stylePrefix + imagePrompt;
+      const enhancedPrompt = "Subject/Face: MUST be a 100% natural, photorealistic human identical to the uploaded photo. Typography: ANY text requested MUST be clean, bold, highly legible, professional, and spelled EXACTLY as written. Style: " + stylePrefix + imagePrompt;
 
       const parts: any[] = [{ text: enhancedPrompt }];
       if (uploadedBase64) {
@@ -329,6 +332,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   
   const [language, setLanguage] = useState<string>('Urdu/Roman Urdu');
+  const [creatorType, setCreatorType] = useState<string>('Tech & AI Educator');
   const [niche, setNiche] = useState<string>('');
 
   const handleBack = () => {
@@ -342,10 +346,10 @@ export default function App() {
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
-        contents: getPrompt(niche),
+        contents: getPrompt(niche, creatorType),
         config: {
           tools: [{ googleSearch: {} }],
-          systemInstruction: getSystemInstruction(language),
+          systemInstruction: getSystemInstruction(language, creatorType),
           temperature: 0.7,
           responseMimeType: "application/json",
         }
@@ -451,12 +455,23 @@ export default function App() {
                  </div>
                  
                  <div>
-                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2 block">Creator Niche (e.g., Tech, Finance, AI for Students)</label>
+                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2 block">Your Channel/Persona Type</label>
+                   <input 
+                     type="text" 
+                     value={creatorType}
+                     onChange={(e) => setCreatorType(e.target.value)}
+                     placeholder="E.g., Tech Reviewer, Fitness Coach, Finance Guru"
+                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500 transition-all font-mono"
+                   />
+                 </div>
+                 
+                 <div>
+                   <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2 block">Specific Topic (Optional)</label>
                    <input 
                      type="text" 
                      value={niche}
                      onChange={(e) => setNiche(e.target.value)}
-                     placeholder="E.g., AI tools for YouTubers..."
+                     placeholder="E.g., Top 5 Productivity Tools"
                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-orange-500 transition-all font-mono"
                    />
                  </div>
@@ -493,8 +508,8 @@ export default function App() {
         {isGenerating && (
           <div className="my-auto flex flex-col items-center justify-center text-gray-400 min-h-[400px]">
             <Loader2 className="w-12 h-12 animate-spin text-orange-500 mb-4" />
-            <p className="text-sm font-black uppercase tracking-widest text-white">Analyzing AI Trends...</p>
-            <p className="text-[10px] mt-2 font-mono uppercase tracking-widest opacity-75">Fetching & formatting data for BeyondTahir</p>
+            <p className="text-sm font-black uppercase tracking-widest text-white">Analyzing Top Trends...</p>
+            <p className="text-[10px] mt-2 font-mono uppercase tracking-widest opacity-75">Fetching & formatting data for {creatorType}</p>
           </div>
         )}
 
